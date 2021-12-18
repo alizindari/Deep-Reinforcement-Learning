@@ -4,27 +4,16 @@ from torch._C import device, wait
 from torch.functional import Tensor
 import torch.nn as nn        
 import torch.optim as optim  
-IMAGESIZE = 30
-MEAN_REWARD_BOUND = 19.0           
-CHANNEL_NUM = 3
-ACTION_SPACE = 3
-gamma = 0.99                   
-BATCH_SIZE = 32 
-REPLAY_SIZE = 10000            
-LEARING_RATE = 1e-4 *1    
-SYNC_TARGET_FRAMES = 1000      
-REPLAY_START_SIZE = 10000      
+from Hyperparameters import *
+import numpy as np
 
-EPS_INITIAL=1.0
-EPS_DECAY=0.99
-EPS_MIN=0.02
 
 class DQN(nn.Module):
-    def __init__(self, input_shape, ACTION_SPACE):
+    def __init__(self):
         super(DQN, self).__init__()
-
+        self.param = Hyperparameters()
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, stride=1),
+            nn.Conv2d(self.param.CHANNEL_NUM, 16, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=1),
             nn.ReLU(),
@@ -32,12 +21,17 @@ class DQN(nn.Module):
             nn.ReLU()
         )
 
-        conv_out_size = 9216
+        conv_out_size = self.get_conv_output_shape([1,self.param.CHANNEL_NUM,self.param.IMAGESIZE[0],self.param.IMAGESIZE[1]])
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size, 64),
             nn.ReLU(),
-            nn.Linear(64, ACTION_SPACE)
+            nn.Linear(64, self.param.ACTION_SPACE)
         )
+
+    def get_conv_output_shape(self,inp_shape):
+        inp = torch.zeros(inp_shape)
+        out = self.conv(inp)
+        return np.prod(out.shape)
 
 
     def forward(self, x):

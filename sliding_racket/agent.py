@@ -22,9 +22,9 @@ class Agent():
         self.interaction_counter = 0
         self.batchSize = self.param.BATCH_SIZE
 
-        self.mainNet = DQN(self.param.IMAGESIZE,self.param.CHANNEL_NUM).to(self.device)
-        self.targetNet = DQN(self.param.IMAGESIZE,self.param.CHANNEL_NUM).to(self.device)
-        self.memory = ExperienceReplay(REPLAY_SIZE)
+        self.mainNet = DQN().to(self.device)
+        self.targetNet = DQN().to(self.device)
+        self.memory = ExperienceReplay(self.param.REPLAY_SIZE)
 
         self.temp_history = collections.deque(maxlen=300)
         self.training_history = [[],[]]
