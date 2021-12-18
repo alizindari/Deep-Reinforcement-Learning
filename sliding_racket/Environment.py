@@ -4,28 +4,15 @@ from collections import deque
 from experience_replay import *
 from brain import *
 from agent import *
-
-IMAGESIZE = 30
-MEAN_REWARD_BOUND = 19.0           
-CHANNEL_NUM = 3
-ACTION_SPACE = 3
-gamma = 0.99                   
-BATCH_SIZE = 32 
-REPLAY_SIZE = 10000            
-LEARING_RATE = 1e-4 *1    
-SYNC_TARGET_FRAMES = 1000      
-REPLAY_START_SIZE = 10000      
-
-EPS_INITIAL=1.0
-EPS_DECAY=0.99
-EPS_MIN=0.02
+from Hyperparameters import *
 
 
 class Environment:
     def __init__(self,x,y):
+        param = Hyperparameters()
         self.x = x
         self.y = y
-        self.buff = deque(maxlen= 3)
+        self.buff = deque(maxlen= param.CHANNEL_NUM)
 
         
     def reset(self):
