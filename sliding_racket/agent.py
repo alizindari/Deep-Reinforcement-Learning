@@ -43,7 +43,7 @@ class Agent():
 
         return action
 
-    def giveFeedBack(self,experience):
+    def update_weights(self,experience):
         self.memory.add_to_memory(experience)
         self.interaction_counter += 1
         self.epsilon = max(self.epsilon*self.param.EPS_DECAY, self.param.EPS_MIN)
