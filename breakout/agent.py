@@ -12,6 +12,7 @@ from Environment import *
 from experience_replay import *
 from brain import *
 from Hyperparameters import *
+import cv2
 
 class Agent():
     def __init__(self):
@@ -26,11 +27,26 @@ class Agent():
         self.mainNet = DQN().to(self.device)
         self.targetNet = DQN().to(self.device)
         self.memory = ExperienceReplay(self.param.REPLAY_SIZE)
+        self.success_memory = ExperienceReplay(self.param.SUCCESS_REPLAY_SIZE)
 
         self.temp_history = collections.deque(maxlen=300)
         self.training_history = [[],[]]
         self.optimizer = optim.Adam(self.mainNet.parameters(), lr=self.param.LEARING_RATE)
         self.totalReward = 0
+
+    def preprocessing(self,current_state,game):
+        if game == 'pong':
+            current_state = current_state[35:195] 
+            current_state = current_state[::2, ::2, :]
+            current_state = current_state[:, :, 0]
+            current_state[current_state == 144] = 0
+            current_state[current_state == 109] = 0
+            current_state[current_state != 0] = 1
+            return current_state 
+        elif game == 'breakout':
+            current_state = current_state[33:198,8:152,0]>10
+            current_state = cv2.resize(current_state,(self.param.IMAGESIZE[0], self.param.IMAGESIZE[1]))
+            return current_state
 
     def find_action(self,state):
         if np.random.random() < self.epsilon:
@@ -44,10 +60,40 @@ class Agent():
 
         return action
 
+    
+    def fill_memory_with_success(self,env):
+        for i in range(self.param.ITER_SUCCESS_FILL):
+
+            stacked_frames = deque(maxlen=self.param.CHANNEL_NUM)
+            current_frame = env.reset()
+            current_frame = self.preprocessing(current_frame,'breakout') 
+
+            for IT in range(self.param.CHANNEL_NUM):
+                stacked_frames.append(current_frame) 
+            
+            current_state = torch.from_numpy(np.stack(stacked_frames,axis=0)).float()
+            done = False
+
+            while True:
+
+                action = np.random.randint(0,self.param.ACTION_SPACE)
+                new_frame, reward, done,_= env.step(action)
+                new_frame = self.preprocessing(new_frame,'breakout')
+                stacked_frames.append(new_frame)
+                new_state = torch.from_numpy(np.stack(stacked_frames,axis=0)).float()
+                if reward == 1:
+                    self.success_memory.add_to_memory([current_state.clone(),action,reward,done,new_state])
+                    print(f'iteration: {i}, last_reward: {reward}')
+                current_state = new_state.clone()
+            
+                if done:
+                    break
+
     def update_weights(self,experience):
         self.memory.add_to_memory(experience)
         self.interaction_counter += 1
         if experience[2] == 1:
+            self.success_memory.add_to_memory(experience)
             self.success_counter += 1
 
         if self.success_counter < self.param.THRESH_START_DECAY:
@@ -55,9 +101,13 @@ class Agent():
         else:
             self.epsilon = max(self.epsilon*self.param.EPS_DECAY, self.param.EPS_MIN)
 
-        if self.memory.current_len >= self.param.REPLAY_START_SIZE and self.interaction_counter% int(self.batchSize/32) == 0:
+        if self.memory.current_len >= self.param.REPLAY_START_SIZE:
+            
+            if np.random.random() < self.param.SUCCESS_SAMPLE_PROB and self.success_memory.current_len >= self.param.BATCH_SIZE:
+                random_samples = self.success_memory.random_sample()
+            else: 
+                random_samples = self.memory.random_sample()
 
-            random_samples = self.memory.random_sample()
             current_states,next_states,rewards,actions,dones = [torch.tensor(element,dtype=torch.float32).to(self.device) for element in random_samples]
             ##################################
             max_next_q_values = self.targetNet(next_states).max(1)[0].detach()

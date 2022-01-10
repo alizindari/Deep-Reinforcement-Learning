@@ -9,12 +9,12 @@ from Hyperparameters import *
 class ExperienceReplay:
     def __init__(self,buffer_size):
         self.param = Hyperparameters()
-        self.buffer_size = self.param.REPLAY_SIZE
-        self.current_states = torch.empty([self.param.REPLAY_SIZE,self.param.CHANNEL_NUM,self.param.IMAGESIZE[0],self.param.IMAGESIZE[1]])
-        self.next_states    = torch.empty([self.param.REPLAY_SIZE,self.param.CHANNEL_NUM,self.param.IMAGESIZE[0],self.param.IMAGESIZE[1]])
-        self.actions        = torch.empty([self.param.REPLAY_SIZE])
-        self.rewards        = torch.empty([self.param.REPLAY_SIZE])
-        self.dones          = torch.empty([self.param.REPLAY_SIZE])
+        self.buffer_size = buffer_size
+        self.current_states = torch.empty([buffer_size,self.param.CHANNEL_NUM,self.param.IMAGESIZE[0],self.param.IMAGESIZE[1]])
+        self.next_states    = torch.empty([buffer_size,self.param.CHANNEL_NUM,self.param.IMAGESIZE[0],self.param.IMAGESIZE[1]])
+        self.actions        = torch.empty([buffer_size])
+        self.rewards        = torch.empty([buffer_size])
+        self.dones          = torch.empty([buffer_size])
         self.index          = 0
         self.current_len    = 0
         
